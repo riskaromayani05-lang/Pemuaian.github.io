@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RelativiGPS-Sim — Time Dilation Lab</title>
+<style>
+  :root {
+    --bg: #050818;
+    --card: #0f172a;
+    --card2: #1e293b;
+    --accent: #38bdf8;
+    --accent2: #a855f7;
+    --gold: #fbbf24;
+    --green: #4ade80;
+    --red: #f87171;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+    --border: #334155;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+
+  body {
+    background: radial-gradient(ellipse at top, #1e1b4b 0%, #050818 60%);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, #fff, transparent),
+      radial-gradient(1px 1px at 60% 70%, #fff, transparent),
+      radial-gradient(1px 1px at 80% 20%, #fff, transparent),
+      radial-gradient(1px 1px at 35% 80%, #fff, transparent),
+      radial-gradient(1px 1px at 90% 50%, #fff, transparent),
+      radial-gradient(1px 1px at 10% 60%, #fff, transparent),
+      radial-gradient(2px 2px at 45% 15%, #cbd5e1, transparent),
+      radial-gradient(2px 2px at 75% 85%, #cbd5e1, transparent);
+    opacity: 0.55;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header, main, footer { position: relative; z-index: 1; }
+
+  header {
+    text-align: center;
+    padding: 10px 0 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 {
+    font-size: 1.7rem;
+    background: linear-gradient(90deg, var(--accent), var(--accent2), var(--gold));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: 0.5px;
+  }
+  header p {
+    color: var(--muted);
+    font-size: 0.85rem;
+    margin-top: 6px;
+  }
+
+  main {
+    flex: 1;
+    display: grid;
+    gap: 15px;
+    padding: 20px 0;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    max-width: 1500px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .card {
+    background: linear-gradient(160deg, var(--card) 0%, #0a1122 100%);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  }
+
+  .card h2 {
+    font-size: 1.02rem;
+    color: var(--accent);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ==================================================
+     SCENE ORBIT — bumi kecil di bawah, satelit di atas
+  ================================================== */
+  .scene-orbit {
+    position: relative;
+    height: 460px;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #020617 0%, #0c1a3a 55%, #1e3a8a 100%);
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  /* Bumi di bagian bawah */
+  .earth-wrap {
+    position: absolute;
+    bottom: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 220px;
+    height: 220px;
+    z-index: 3;
+  }
+  .earth {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 30% 25%, #60a5fa 0%, #2563eb 35%, #1e40af 60%, #0c2461 100%);
+    box-shadow:
+      0 0 60px 15px rgba(56,189,248,0.35),
+      0 0 120px 40px rgba(56,189,248,0.15),
+      inset -25px -25px 50px rgba(0,0,0,0.7);
+    animation: earthSpin 40s linear infinite;
+    overflow: hidden;
+  }
+  .earth::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(ellipse 30px 18px at 40% 35%, #4ade80 60%, transparent 70%),
+      radial-gradient(ellipse 22px 14px at 65% 55%, #4ade80 60%, transparent 70%),
+      radial-gradient(ellipse 26px 12px at 30% 65%, #4ade80 60%, transparent 70%),
+      radial-gradient(ellipse 18px 10px at 70% 30%, #22c55e 60%, transparent 70%),
+      radial-gradient(ellipse 20px 10px at 50% 80%, #22c55e 60%, transparent 70%);
+    opacity: 0.85;
+  }
+  @keyframes earthSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  /* Garis permukaan tanah */
+  .ground-label {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.62rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+    background: rgba(5,8,24,0.7);
+    padding: 2px 8px;
+    border-radius: 10px;
+    z-index: 8;
+  }
+
+  /* Satelit di atas */
+  .sat-wrap {
+    position: absolute;
+    top: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 6;
+    transition: top 0.4s ease-out;
+  }
+  .satellite {
+    font-size: 2.4rem;
+    filter: drop-shadow(0 0 14px rgba(251,191,36,0.9));
+    animation: satBob 2.5s ease-in-out infinite;
+    display: block;
+  }
+  @keyframes satBob {
+    0%,100% { transform: translateY(0) rotate(-5deg); }
+    50%     { transform: translateY(-6px) rotate(5deg); }
+  }
+
+  /* ==================================================
+     GELOMBANG SINYAL
+  ================================================== */
+  .signal-column {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    z-index: 4;
+    pointer-events: none;
+  }
+
+  .wave {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    opacity: 0;
+    animation: waveTravel linear infinite;
+  }
+  @keyframes waveTravel {
+    0%   { transform: translate(-50%, 0)      scale(0.6); opacity: 0; }
+    15%  { opacity: 0.9; }
+    85%  { opacity: 0.9; }
+    100% { transform: translate(-50%, 0)      scale(1.3); opacity: 0; }
+  }
+
+  /* Gelombang naik dari bumi ke satelit */
+  .wave.up {
+    bottom: 0;
+    animation-name: waveUp;
+  }
+  @keyframes waveUp {
+    0%   { bottom: 0;    opacity: 0; transform: translateX(-50%) scaleY(0.5); }
+    20%  { opacity: 1; }
+    80%  { opacity: 1; }
+    100% { bottom: calc(100% - 40px); opacity: 0; transform: translateX(-50%) scaleY(1.3); }
+  }
+
+  /* Bentuk gelombang (sinus) */
+  .wave-svg {
+    width: 100%;
+    height: 40px;
+    display: block;
+  }
+
+  /* ==================================================
+     GARIS UKUR / DIMENSI KETINGGIAN
+  ================================================== */
+  .dimension {
+    position: absolute;
+    right: 12px;
+    top: 40px;
+    bottom: 130px;
+    width: 70px;
+    z-index: 5;
+    transition: top 0.4s ease-out, bottom 0.4s ease-out;
+  }
+  .dim-line {
+    position: absolute;
+    right: 30px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(180deg, var(--gold), var(--accent));
+    box-shadow: 0 0 8px rgba(251,191,36,0.6);
+  }
+  .dim-cap-top, .dim-cap-bottom {
+    position: absolute;
+    right: 22px;
+    width: 18px;
+    height: 2px;
+    background: var(--gold);
+    box-shadow: 0 0 6px rgba(251,191,36,0.8);
+  }
+  .dim-cap-top { top: 0; }
+  .dim-cap-bottom { bottom: 0; }
+
+  .dim-label {
+    position: absolute;
+    right: 52px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--gold);
+    background: rgba(5,8,24,0.85);
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--gold);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    box-shadow: 0 0 12px rgba(251,191,36,0.4);
+  }
+
+  /* Garis orbit horizontal tipis di sekitar satelit */
+  .orbit-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(168,85,247,0.5), transparent);
+    z-index: 2;
+    top: 40px;
+    transition: top 0.4s ease-out;
+  }
+  .orbit-line::before {
+    content: 'ORBIT';
+    position: absolute;
+    left: 8px;
+    top: -8px;
+    font-size: 0.6rem;
+    color: var(--accent2);
+    letter-spacing: 1px;
+  }
+
+  /* Info panel kecil di dalam scene */
+  .scene-hud {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(5,8,24,0.85);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 0.7rem;
+    color: var(--muted);
+    z-index: 7;
+    line-height: 1.5;
+  }
+  .scene-hud b { color: var(--gold); }
+  .scene-hud .row2 { color: var(--accent); }
+
+  /* Partikel kalor / foton bergerak naik-turun */
+  .photon {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--gold);
+    box-shadow: 0 0 8px 3px rgba(251,191,36,0.9);
+    z-index: 5;
+    pointer-events: none;
+    animation: photonUp linear infinite;
+  }
+  @keyframes photonUp {
+    0%   { bottom: 100px; opacity: 0; transform: scale(0.6); }
+    15%  { opacity: 1; transform: scale(1); }
+    85%  { opacity: 1; }
+    100% { bottom: calc(100% - 20px); opacity: 0; transform: scale(0.8); }
+  }
+
+  /* ==================================================
+     KALKULATOR
+  ================================================== */
+  .result-box {
+    background: linear-gradient(135deg, rgba(56,189,248,0.1), rgba(168,85,247,0.1));
+    border: 1px solid rgba(56,189,248,0.35);
+    border-radius: 10px;
+    padding: 12px;
+    margin-top: 10px;
+  }
+  .result-box .row {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    font-size: 0.85rem;
+    border-bottom: 1px dashed rgba(148,163,184,0.2);
+  }
+  .result-box .row:last-child { border-bottom: none; }
+  .result-box .row label { color: var(--muted); }
+  .result-box .row span { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  .big-number { text-align: center; padding: 12px 0; }
+  .big-number .num {
+    font-size: 2rem;
+    font-weight: 800;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-variant-numeric: tabular-nums;
+  }
+  .big-number .lbl {
+    font-size: 0.75rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .mini-box {
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+    border: 1px solid var(--border);
+    background: rgba(15,23,42,0.7);
+  }
+  .mini-box .v { font-size: 1.2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .mini-box .t {
+    font-size: 0.68rem; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-top: 3px;
+  }
+  .mini-box.green  .v { color: var(--green); }
+  .mini-box.gold   .v { color: var(--gold); }
+  .mini-box.purple .v { color: var(--accent2); }
+  .mini-box.red    .v { color: var(--red); }
+
+  .formula {
+    font-family: 'Courier New', monospace;
+    background: rgba(5,8,24,0.7);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin: 10px 0;
+    font-size: 0.85rem;
+    color: var(--accent);
+    text-align: center;
+    letter-spacing: 0.5px;
+  }
+  .formula small { color: var(--muted); font-size: 0.72rem; display: block; margin-top: 4px; }
+
+  .error-box {
+    background: linear-gradient(135deg, rgba(248,113,113,0.15), rgba(251,191,36,0.1));
+    border: 1px solid rgba(248,113,113,0.5);
+    border-radius: 10px;
+    padding: 12px;
+    margin-top: 10px;
+    animation: errorGlow 2s ease-in-out infinite;
+  }
+  @keyframes errorGlow {
+    0%,100% { box-shadow: 0 0 0 rgba(248,113,113,0); }
+    50%     { box-shadow: 0 0 20px rgba(248,113,113,0.3); }
+  }
+  .error-box h3 {
+    font-size: 0.85rem; color: var(--red); margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .error-box .row {
+    display: flex; justify-content: space-between;
+    padding: 4px 0; font-size: 0.83rem;
+  }
+  .error-box .row label { color: var(--muted); }
+  .error-box .row span { font-weight: 700; color: var(--red); font-variant-numeric: tabular-nums; }
+
+  .controls { display: grid; gap: 14px; }
+  .control-row { display: flex; flex-direction: column; gap: 5px; }
+  .control-row label {
+    font-size: 0.8rem; color: var(--muted);
+    display: flex; justify-content: space-between;
+  }
+  .control-row label span { color: var(--text); font-weight: 700; }
+
+  input[type="range"] {
+    -webkit-appearance: none; width: 100%; height: 6px;
+    border-radius: 3px; background: var(--border); outline: none; cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px;
+    border-radius: 50%; background: var(--accent);
+    box-shadow: 0 0 8px rgba(56,189,248,0.8); cursor: pointer; border: 2px solid #fff;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent); border: 2px solid #fff; cursor: pointer;
+  }
+
+  .preset-buttons {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px; margin-top: 4px;
+  }
+  .preset-buttons button {
+    padding: 7px 4px; font-size: 0.7rem; border-radius: 8px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--muted); cursor: pointer; transition: 0.25s;
+  }
+  .preset-buttons button:hover {
+    background: rgba(56,189,248,0.1); color: var(--accent); border-color: var(--accent);
+  }
+  .preset-buttons button.active {
+    background: var(--accent); color: #050818;
+    border-color: var(--accent); font-weight: 700;
+  }
+
+  .timeline {
+    position: relative; height: 60px;
+    background: rgba(5,8,24,0.6);
+    border-radius: 10px; border: 1px solid var(--border);
+    margin-top: 10px; overflow: hidden;
+  }
+  .timeline::before {
+    content: ''; position: absolute; top: 50%; left: 10px; right: 10px;
+    height: 2px; background: var(--border);
+  }
+  .clock-earth, .clock-sat {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    font-size: 0.68rem; padding: 4px 8px; border-radius: 6px;
+    white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
+  .clock-earth {
+    left: 10px; background: rgba(56,189,248,0.2);
+    border: 1px solid var(--accent); color: var(--accent);
+  }
+  .clock-sat {
+    right: 10px; background: rgba(251,191,36,0.2);
+    border: 1px solid var(--gold); color: var(--gold);
+  }
+  .clock-label {
+    position: absolute; top: 4px; left: 10px;
+    font-size: 0.62rem; color: var(--muted); letter-spacing: 1px;
+  }
+
+  footer {
+    text-align: center; padding: 15px 0 5px;
+    color: var(--muted); font-size: 0.78rem;
+    border-top: 1px solid var(--border); margin-top: 15px;
+  }
+
+  .badge-novelty {
+    display: inline-block; font-size: 0.65rem; padding: 3px 9px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    color: #050818; border-radius: 20px; font-weight: 700;
+    letter-spacing: 0.5px; margin-bottom: 8px;
+  }
+
+  @media (max-width: 480px) {
+    header h1 { font-size: 1.2rem; }
+    .scene-orbit { height: 400px; }
+    .split { grid-template-columns: 1fr; }
+    .dimension { width: 55px; }
+    .dim-label { font-size: 0.62rem; padding: 3px 6px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>RelativiGPS-Sim</h1>
+  <p>Simulasi Dilatasi Waktu Relativitas Khusus–Umum untuk Akurasi Navigasi Satelit GPS</p>
+</header>
+
+<main>
+
+  <!-- ====================== SCENE ORBIT ====================== -->
+  <section class="card">
+    <h2>🛰️ Orbit Satelit GPS — Skala Visual</h2>
+
+    <div class="scene-orbit" id="sceneOrbit">
+
+      <!-- Bumi di bawah -->
+      <div class="earth-wrap">
+        <div class="earth"></div>
+      </div>
+      <div class="ground-label" id="groundLabel">🌍 PERMUKAAN BUMI (0 km)</div>
+
+      <!-- Garis orbit horizontal -->
+      <div class="orbit-line" id="orbitLine"></div>
+
+      <!-- Satelit (posisinya berubah sesuai ketinggian) -->
+      <div class="sat-wrap" id="satWrap">
+        <div class="satellite">🛰️</div>
+      </div>
+
+      <!-- Garis ukur ketinggian -->
+      <div class="dimension" id="dimension">
+        <div class="dim-line"></div>
+        <div class="dim-cap-top"></div>
+        <div class="dim-cap-bottom"></div>
+        <div class="dim-label" id="dimLabel">20.200 km</div>
+      </div>
+
+      <!-- Kolom gelombang sinyal -->
+      <div class="signal-column" id="signalColumn"></div>
+
+      <!-- HUD info -->
+      <div class="scene-hud">
+        <div>Kecepatan: <b id="hudVel">3.87 km/s</b></div>
+        <div class="row2">Ketinggian: <b id="hudAlt" style="color:var(--accent)">20.200 km</b></div>
+        <div>Skala: <b id="hudScale" style="color:var(--accent2)">1:1.000.000</b></div>
+      </div>
+
+    </div>
+
+    <div class="formula">
+      Δt' = Δt · γ &nbsp;→&nbsp; γ = 1/√(1 − v²/c²)
+      <small>Gelombang sinyal: makin tinggi orbit → makin panjang waktu tempuh → makin renggang gelombang</small>
+    </div>
+  </section>
+
+  <!-- ====================== KALKULATOR ====================== -->
+  <section class="card">
+    <h2>⏱️ Kalkulator Dilatasi Waktu</h2>
+
+    <div class="controls">
+      <div class="control-row">
+        <label>Kecepatan orbit satelit <span id="velLbl">3.87 km/s</span></label>
+        <input type="range" id="velInput" min="1" max="11" value="3.87" step="0.01">
+        <div class="preset-buttons">
+          <button data-v="3.87" class="active">GPS</button>
+          <button data-v="7.66">LEO/ISS</button>
+          <button data-v="11">Escape</button>
+        </div>
+      </div>
+
+      <div class="control-row">
+        <label>Ketinggian orbit <span id="altLbl">20.200 km</span></label>
+        <input type="range" id="altInput" min="400" max="36000" value="20200" step="100">
+        <div class="preset-buttons">
+          <button data-a="400">ISS</button>
+          <button data-a="20200" class="active">GPS</button>
+          <button data-a="35786">GEO</button>
+        </div>
+      </div>
+
+      <div class="control-row">
+        <label>Durasi pengamatan <span id="durLbl">24 jam</span></label>
+        <input type="range" id="durInput" min="1" max="720" value="24" step="1">
+        <div class="preset-buttons">
+          <button data-d="1">1 jam</button>
+          <button data-d="24" class="active">24 jam</button>
+          <button data-d="720">30 hari</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-box">
+      <div class="big-number">
+        <div class="num" id="netDrift">+38.5 μs</div>
+        <div class="lbl">Drift waktu bersih per hari</div>
+      </div>
+    </div>
+
+    <div class="split">
+      <div class="mini-box purple">
+        <div class="v" id="specialRel">−7.2 μs</div>
+        <div class="t">Khusus (v)</div>
+      </div>
+      <div class="mini-box gold">
+        <div class="v" id="generalRel">+45.7 μs</div>
+        <div class="t">Umum (g)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ====================== ERROR GPS ====================== -->
+  <section class="card">
+    <h2>📡 Eror Navigasi GPS</h2>
+
+    <div class="error-box">
+      <h3>⚠️ Jika koreksi relativitas TIDAK diterapkan</h3>
+      <div class="row">
+        <label>Drift waktu per hari</label>
+        <span id="errDrift">+38.5 μs</span>
+      </div>
+      <div class="row">
+        <label>Akumulasi dalam 1 menit</label>
+        <span id="errPerMin">+0.000027 s</span>
+      </div>
+      <div class="row">
+        <label>Eror posisi dalam 1 menit</label>
+        <span id="errPos1min">8.0 km</span>
+      </div>
+      <div class="row">
+        <label>Eror posisi dalam 1 hari</label>
+        <span id="errPosDay">11.5 km</span>
+      </div>
+    </div>
+
+    <div class="formula">
+      Δx = c · Δt<sub>error</sub>
+      <small>Eror jarak = kecepatan cahaya × drift waktu</small>
+    </div>
+
+    <div class="result-box">
+      <div class="row">
+        <label>Jika dikoreksi (realita)</label>
+        <span style="color:var(--green)">±5 meter</span>
+      </div>
+      <div class="row">
+        <label>Tanpa koreksi relativitas</label>
+        <span style="color:var(--red)" id="noCorrection">±11.500 meter</span>
+      </div>
+      <div class="row">
+        <label>Rasio akurasi</label>
+        <span style="color:var(--gold)" id="accRatio">2.300×</span>
+      </div>
+    </div>
+
+    <div class="timeline">
+      <div class="clock-label">PERBANDINGAN JAM</div>
+      <div class="clock-earth" id="clockEarth">🌍 Bumi: 00:00:00.000</div>
+      <div class="clock-sat" id="clockSat">🛰️ Satelit: 00:00:00.000</div>
+    </div>
+  </section>
+
+  <!-- ====================== EDUKASI ====================== -->
+  <section class="card">
+    <h2>📚 Penjelasan Fisika</h2>
+    <div class="badge-novelty">✦ NOVELTY</div>
+
+    <div style="font-size:0.85rem; line-height:1.65; color:var(--text);">
+      <p style="margin-bottom:10px;">
+        <b style="color:var(--accent);">1. Relativitas Khusus (SRT)</b><br>
+        Satelit GPS bergerak ~3.87 km/s. Menurut Einstein, jam yang bergerak lebih lambat:
+      </p>
+      <div class="formula" style="font-size:0.78rem;">Δt = Δt₀ / √(1 − v²/c²)</div>
+      <p style="margin-bottom:10px; color:var(--muted); font-size:0.8rem;">
+        → Efek: jam satelit <b style="color:var(--red);">terlambat 7.2 μs/hari</b>
+      </p>
+
+      <p style="margin-bottom:10px;">
+        <b style="color:var(--gold);">2. Relativitas Umum (GRT)</b><br>
+        Gravitasi Bumi lebih kuat di permukaan. Menurut Einstein, jam di gravitasi kuat lebih lambat:
+      </p>
+      <div class="formula" style="font-size:0.78rem;">Δt = Δt₀ · √(1 − 2GM/rc²)</div>
+      <p style="margin-bottom:10px; color:var(--muted); font-size:0.8rem;">
+        → Efek: jam satelit <b style="color:var(--green);">lebih cepat 45.7 μs/hari</b>
+      </p>
+
+      <p style="margin-bottom:10px;">
+        <b style="color:var(--accent2);">3. Drift Bersih</b><br>
+        Efek gravitasi lebih besar → jam satelit <b>+38.5 μs/hari</b> lebih cepat.
+      </p>
+
+      <p style="color:var(--muted); font-size:0.8rem; border-top:1px solid var(--border); padding-top:10px;">
+        💡 Tanpa koreksi relativitas, GPS akan melenceng <b style="color:var(--red);">~11.5 km per hari</b> —
+        cukup untuk membuat Google Maps menuntun Anda ke kota yang salah!
+      </p>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  &copy; 2025 RelativiGPS-Sim — Platform Edutech Simulasi Relativitas &amp; Navigasi Satelit
+</footer>
+
+<script>
+/* ============================================================
+   KONSTANTA
+============================================================ */
+const C = 299792458;
+const GM_EARTH = 3.986004418e14;
+const R_EARTH = 6371000;
+
+/* ============================================================
+   STATE
+============================================================ */
+const state = { v: 3870, altitude: 20200, duration: 24 };
+
+/* ============================================================
+   DOM
+============================================================ */
+const velInput  = document.getElementById('velInput');
+const altInput  = document.getElementById('altInput');
+const durInput  = document.getElementById('durInput');
+const velLbl    = document.getElementById('velLbl');
+const altLbl    = document.getElementById('altLbl');
+const durLbl    = document.getElementById('durLbl');
+
+const specialRel  = document.getElementById('specialRel');
+const generalRel  = document.getElementById('generalRel');
+const netDrift    = document.getElementById('netDrift');
+
+const errDrift    = document.getElementById('errDrift');
+const errPerMin   = document.getElementById('errPerMin');
+const errPos1min  = document.getElementById('errPos1min');
+const errPosDay   = document.getElementById('errPosDay');
+const noCorrection= document.getElementById('noCorrection');
+const accRatio    = document.getElementById('accRatio');
+
+const satWrap     = document.getElementById('satWrap');
+const orbitLine   = document.getElementById('orbitLine');
+const dimension   = document.getElementById('dimension');
+const dimLabel    = document.getElementById('dimLabel');
+const signalCol   = document.getElementById('signalColumn');
+const hudVel      = document.getElementById('hudVel');
+const hudAlt      = document.getElementById('hudAlt');
+const hudScale    = document.getElementById('hudScale');
+
+const clockEarth  = document.getElementById('clockEarth');
+const clockSat    = document.getElementById('clockSat');
+
+/* ============================================================
+   PEMETAAN KETINGGIAN → POSISI VISUAL (dalam pixel)
+   Range 400 km (dekat) → 36.000 km (jauh dari bumi)
+   Scene tinggi 460px, bumi di bawah (bottom -30, tinggi 220)
+   Satelit harus di antara 40px (paling atas) sampai ~180px (dekat bumi)
+============================================================ */
+function altitudeToY(altKm) {
+  // Normalisasi logaritmik agar perbedaan terlihat dramatis
+  const minAlt = 400, maxAlt = 36000;
+  const norm = (Math.log(altKm) - Math.log(minAlt)) /
+               (Math.log(maxAlt) - Math.log(minAlt));
+  // 40px = orbit tertinggi, 200px = orbit terendah
+  return 40 + (1 - norm) * 160;
+}
+
+/* ============================================================
+   GELOMBANG SINYAL DINAMIS
+   - Kecepatan tinggi → gelombang rapat & cepat
+   - Ketinggian tinggi → gelombang lebih panjang & jarang
+   - Warna berubah sesuai besaran
+============================================================ */
+function rebuildSignalWaves() {
+  signalCol.innerHTML = '';
+
+  // Jumlah gelombang naik sesuai ketinggian & kecepatan
+  const normAlt = (state.altitude - 400) / (36000 - 400);           // 0..1
+  const normVel = (state.v / 1000 - 1) / (11 - 1);                  // 0..1
+
+  // Jumlah gelombang: makin tinggi → makin banyak lapisan tampil
+  const count = Math.round(4 + normAlt * 6 + normVel * 3);
+
+  // Durasi: makin cepat → makin singkat (animasi lebih cepat)
+  // makin tinggi → waktu tempuh lebih lama → durasi lebih panjang
+  const baseDur = 3.5 - normVel * 2.2 + normAlt * 1.8;
+
+  // Warna: kecepatan rendah hijau, sedang biru, tinggi ungu/merah
+  const color = normVel > 0.75 ? '#f87171'
+              : normVel > 0.4  ? '#a855f7'
+              : '#38bdf8';
+
+  // Amplitudo gelombang: makin tinggi → makin lebar (renggang)
+  const amplitude = 8 + normAlt * 16;
+
+  for (let i = 0; i < count; i++) {
+    const wave = document.createElement('div');
+    wave.className = 'wave up';
+    wave.style.animationDuration = (baseDur + Math.random() * 0.6) + 's';
+    wave.style.animationDelay = (i * (baseDur / count)) + 's';
+
+    // SVG gelombang sinus
+    const svg = `
+      <svg class="wave-svg" viewBox="0 0 100 40" preserveAspectRatio="none"
+           xmlns="http://www.w3.org/2000/svg">
+        <path d="M 0 20 Q 12.5 ${20 - amplitude} 25 20 T 50 20 T 75 20 T 100 20"
+              fill="none" stroke="${color}" stroke-width="2" opacity="0.9"/>
+      </svg>`;
+    wave.innerHTML = svg;
+    signalCol.appendChild(wave);
+  }
+
+  // Partikel foton individual (titik) bergerak naik dari bumi ke satelit
+  const photonCount = Math.round(5 + normVel * 8);
+  for (let i = 0; i < photonCount; i++) {
+    const p = document.createElement('div');
+    p.className = 'photon';
+    p.style.left = (30 + Math.random() * 40) + '%';
+    p.style.background = color;
+    p.style.boxShadow = `0 0 8px 3px ${color}99`;
+    p.style.animationDuration = (1.5 + Math.random() * 1.2) + 's';
+    p.style.animationDelay = (Math.random() * 3) + 's';
+    signalCol.appendChild(p);
+  }
+}
+
+/* ============================================================
+   FISIKA
+============================================================ */
+function computeDilation() {
+  const v = state.v;
+  const r = (R_EARTH + state.altitude * 1000);
+
+  const gamma = 1 / Math.sqrt(1 - (v * v) / (C * C));
+  const srPerSec = (1 / gamma) - 1;
+
+  const gravBumi = Math.sqrt(1 - (2 * GM_EARTH) / (R_EARTH * C * C));
+  const gravSat  = Math.sqrt(1 - (2 * GM_EARTH) / (r * C * C));
+  const grPerSec = (gravSat / gravBumi) - 1;
+
+  const totalPerSec = srPerSec + grPerSec;
+
+  const srPerDay = srPerSec * 86400 * 1e6;
+  const grPerDay = grPerSec * 86400 * 1e6;
+  const netPerDay = totalPerSec * 86400 * 1e6;
+
+  const driftPerDaySec = Math.abs(netPerDay * 1e-6);
+  const errPosPerDay = C * driftPerDaySec;
+  const driftPerMinSec = driftPerDaySec / (24 * 60);
+  const errPosPerMin = C * driftPerMinSec;
+
+  return { srPerDay, grPerDay, netPerDay, errPosPerDay, errPosPerMin, driftPerDaySec, driftPerMinSec, gamma };
+}
+
+/* ============================================================
+   FORMATTER
+============================================================ */
+function fmtMicro(v) {
+  const sign = v >= 0 ? '+' : '−';
+  return sign + Math.abs(v).toFixed(2) + ' μs';
+}
+function fmtMeters(m) {
+  if (m >= 1000) return (m / 1000).toFixed(2) + ' km';
+  return m.toFixed(1) + ' m';
+}
+function fmtTime(sec) {
+  const sign = sec >= 0 ? '' : '−';
+  sec = Math.abs(sec);
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec - h * 3600 - m * 60;
+  return sign + String(h).padStart(2, '0') + ':' +
+         String(m).padStart(2, '0') + ':' +
+         s.toFixed(3).padStart(6, '0');
+}
+
+/* ============================================================
+   RENDER UTAMA
+============================================================ */
+function render() {
+  const p = computeDilation();
+
+  // ---- Nilai ----
+  specialRel.textContent = fmtMicro(p.srPerDay);
+  generalRel.textContent = fmtMicro(p.grPerDay);
+  netDrift.textContent   = fmtMicro(p.netPerDay);
+
+  if (p.netPerDay > 0) {
+    netDrift.style.background = 'linear-gradient(90deg, #fbbf24, #f87171)';
+  } else {
+    netDrift.style.background = 'linear-gradient(90deg, #38bdf8, #a855f7)';
+  }
+  netDrift.style.webkitBackgroundClip = 'text';
+  netDrift.style.backgroundClip = 'text';
+  netDrift.style.color = 'transparent';
+
+  errDrift.textContent   = fmtMicro(p.netPerDay);
+  errPerMin.textContent  = (p.driftPerMinSec).toFixed(8) + ' s';
+  errPos1min.textContent = fmtMeters(p.errPosPerMin);
+  errPosDay.textContent  = fmtMeters(p.errPosPerDay);
+
+  noCorrection.textContent = '±' + fmtMeters(p.errPosPerDay);
+  const ratio = p.errPosPerDay / 5;
+  accRatio.textContent = ratio >= 1000
+    ? Math.round(ratio).toLocaleString('id-ID') + '×'
+    : ratio.toFixed(0) + '×';
+
+  specialRel.style.color = p.srPerDay < 0 ? 'var(--red)' : 'var(--green)';
+  generalRel.style.color = p.grPerDay > 0 ? 'var(--green)' : 'var(--red)';
+
+  // ---- Update SCENE ORBIT ----
+  const satY = altitudeToY(state.altitude);
+
+  // Posisi satelit
+  satWrap.style.top = satY + 'px';
+
+  // Garis orbit horizontal
+  orbitLine.style.top = (satY + 20) + 'px';
+
+  // Garis ukur ketinggian
+  dimension.style.top = (satY + 20) + 'px';
+  dimension.style.bottom = '130px';
+
+  // Label ketinggian
+  dimLabel.textContent = state.altitude.toLocaleString('id-ID') + ' km';
+
+  // HUD
+  hudVel.textContent = (state.v / 1000).toFixed(2) + ' km/s';
+  hudAlt.textContent = state.altitude.toLocaleString('id-ID') + ' km';
+
+  // Skala visual (perkiraan)
+  const scaleFactor = Math.round(state.altitude * 1000 / 460);
+  hudScale.textContent = '1:' + scaleFactor.toLocaleString('id-ID');
+
+  // Rebuild gelombang
+  rebuildSignalWaves();
+
+  // ---- Timeline clock ----
+  const now = Date.now() / 1000;
+  const elapsed = now % 86400;
+  clockEarth.textContent = '🌍 Bumi: ' + fmtTime(elapsed);
+  clockSat.textContent   = '🛰️ Satelit: ' + fmtTime(elapsed + elapsed * (p.netPerDay * 1e-6));
+}
+
+/* ============================================================
+   EVENTS
+============================================================ */
+velInput.addEventListener('input', e => {
+  state.v = parseFloat(e.target.value) * 1000;
+  velLbl.textContent = parseFloat(e.target.value).toFixed(2) + ' km/s';
+  document.querySelectorAll('.preset-buttons button[data-v]').forEach(b => b.classList.remove('active'));
+  render();
+});
+altInput.addEventListener('input', e => {
+  state.altitude = parseFloat(e.target.value);
+  altLbl.textContent = state.altitude.toLocaleString('id-ID') + ' km';
+  document.querySelectorAll('.preset-buttons button[data-a]').forEach(b => b.classList.remove('active'));
+  render();
+});
+durInput.addEventListener('input', e => {
+  state.duration = parseFloat(e.target.value);
+  durLbl.textContent = state.duration < 24 ? state.duration + ' jam' : (state.duration / 24) + ' hari';
+  document.querySelectorAll('.preset-buttons button[data-d]').forEach(b => b.classList.remove('active'));
+  render();
+});
+
+document.querySelectorAll('.preset-buttons button[data-v]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const v = parseFloat(btn.dataset.v);
+    velInput.value = v; state.v = v * 1000;
+    velLbl.textContent = v.toFixed(2) + ' km/s';
+    document.querySelectorAll('.preset-buttons button[data-v]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active'); render();
+  });
+});
+document.querySelectorAll('.preset-buttons button[data-a]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const a = parseFloat(btn.dataset.a);
+    altInput.value = a; state.altitude = a;
+    altLbl.textContent = a.toLocaleString('id-ID') + ' km';
+    document.querySelectorAll('.preset-buttons button[data-a]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active'); render();
+  });
+});
+document.querySelectorAll('.preset-buttons button[data-d]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const d = parseFloat(btn.dataset.d);
+    durInput.value = d; state.duration = d;
+    durLbl.textContent = d < 24 ? d + ' jam' : (d / 24) + ' hari';
+    document.querySelectorAll('.preset-buttons button[data-d]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active'); render();
+  });
+});
+
+/* ============================================================
+   INIT
+============================================================ */
+render();
+setInterval(() => {
+  // update jam tiap 100ms
+  const p = computeDilation();
+  const now = Date.now() / 1000;
+  const elapsed = now % 86400;
+  clockEarth.textContent = '🌍 Bumi: ' + fmtTime(elapsed);
+  clockSat.textContent   = '🛰️ Satelit: ' + fmtTime(elapsed + elapsed * (p.netPerDay * 1e-6));
+}, 100);
+</script>
+
+</body>
+</html>
